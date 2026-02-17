@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PersonaMem — Sign In</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-icon">🧠</span>
+      <h1>PersonaMem</h1>
+      <p>AI Assistant with Persistent Memory</p>
+    </div>
+
+    <div id="errorBox" class="error-msg"></div>
+
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginPanel" class="form-panel active">
+      <div class="form-group">
+        <label>Username</label>
+        <input class="form-control" type="text" id="loginUsername" placeholder="Enter username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input class="form-control" type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" id="loginBtn">
+        Sign In
+      </button>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="signupPanel" class="form-panel">
+      <div class="form-group">
+        <label>Username</label>
+        <input class="form-control" type="text" id="signupUsername" placeholder="Choose a username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input class="form-control" type="email" id="signupEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input class="form-control" type="password" id="signupPassword" placeholder="Create a password" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary" onclick="doSignup()" id="signupBtn">
+        Create Account
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    // Redirect if already logged in
+    if (localStorage.getItem('token')) {
+      window.location.href = '/app';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'signup'));
+      });
+      document.getElementById('loginPanel').classList.toggle('active', tab === 'login');
+      document.getElementById('signupPanel').classList.toggle('active', tab === 'signup');
+      hideError();
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.style.display = 'block';
+    }
+    function hideError() {
+      document.getElementById('errorBox').style.display = 'none';
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? '<span class="spinner"></span>'
+        : (btnId === 'loginBtn' ? 'Sign In' : 'Create Account');
+    }
+
+    async function doLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!username || !password) { showError('Please fill in all fields.'); return; }
+
+      setLoading('loginBtn', true); hideError();
+      try {
+        const res = await fetch(`${API}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('userId', data.user_id);
+        localStorage.setItem('username', data.username);
+        window.location.href = '/app';
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        setLoading('loginBtn', false);
+      }
+    }
+
+    async function doSignup() {
+      const username = document.getElementById('signupUsername').value.trim();
+      const email    = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      if (!username || !email || !password) { showError('Please fill in all fields.'); return; }
+      if (password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+
+      setLoading('signupBtn', true); hideError();
+      try {
+        const res = await fetch(`${API}/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Signup failed');
+        // Auto-login after signup
+        const loginRes = await fetch(`${API}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const loginData = await loginRes.json();
+        if (loginRes.ok) {
+          localStorage.setItem('token', loginData.access_token);
+          localStorage.setItem('userId', loginData.user_id);
+          localStorage.setItem('username', loginData.username);
+          window.location.href = '/app';
+        } else {
+          switchTab('login');
+          document.getElementById('loginUsername').value = username;
+        }
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        setLoading('signupBtn', false);
+      }
+    }
+
+    // Enter key support
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        if (document.getElementById('loginPanel').classList.contains('active')) doLogin();
+        else doSignup();
+      }
+    });
+  </script>
+</body>
+</html>

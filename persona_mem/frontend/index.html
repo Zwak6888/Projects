@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PersonaMem — Chat</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<body>
+  <div class="app-layout">
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+      <a href="/app" class="nav-brand">
+        <span class="logo-mini">🧠</span>
+        PersonaMem
+      </a>
+
+      <div class="nav-links">
+        <a href="/app" class="nav-link active">💬 Chat</a>
+        <a href="/dashboard" class="nav-link">📊 Dashboard</a>
+      </div>
+
+      <div class="nav-spacer"></div>
+
+      <div class="nav-user">
+        👤 <span id="navUsername">User</span>
+      </div>
+
+      <button class="btn btn-secondary btn-sm" onclick="logout()">
+        Sign Out
+      </button>
+    </nav>
+
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <button class="btn btn-primary btn-sm" onclick="newSession()">
+          + New Chat
+        </button>
+      </div>
+      <div class="session-list" id="sessionList"></div>
+    </aside>
+
+
+    <!-- Chat Area -->
+    <main class="chat-area">
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty" id="chatEmpty">
+          <div class="empty-icon">🧠</div>
+          <h2>Hello! I remember you.</h2>
+          <p>Start chatting — I’ll remember your preferences and interests.</p>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="input-row">
+
+          <textarea
+            id="messageInput"
+            placeholder="Message PersonaMem…"
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+
+          <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+            ➤
+          </button>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center;font-size:0.85rem;color:var(--text-muted);margin-top:10px;">
+          ✨ Designed & Developed by <strong>Sanchayeta</strong>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+
+  <!-- ========================= -->
+  <!--          SCRIPT          -->
+  <!-- ========================= -->
+
+  <script>
+
+    // Redirect if not logged in
+    if (!localStorage.getItem('token')) {
+      window.location.href = '/';
+    }
+
+    // Set username
+    document.addEventListener("DOMContentLoaded", () => {
+      const name = localStorage.getItem('username') || 'User';
+      document.getElementById('navUsername').textContent = name;
+    });
+
+    const API = '';
+    let currentSessionId = null;
+    let isStreaming = false;
+
+
+    // =========================
+    // UI Helpers
+    // =========================
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+    }
+
+    function formatContent(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+
+    function appendMessage(role, content) {
+      const container = document.getElementById('chatMessages');
+      const row = document.createElement('div');
+
+      row.className = `message-row ${role}`;
+      row.innerHTML = `
+        <div class="message-avatar">${role === 'user' ? '👤' : '🧠'}</div>
+        <div class="message-bubble">${formatContent(content)}</div>
+      `;
+
+      container.appendChild(row);
+      container.scrollTop = container.scrollHeight;
+
+      document.getElementById('chatEmpty').style.display = 'none';
+
+      return row;
+    }
+
+    function newSession() {
+      currentSessionId = null;
+      document.getElementById('chatMessages').innerHTML = '';
+      document.getElementById('chatEmpty').style.display = 'flex';
+    }
+
+
+    // =========================
+    // Streaming Chat
+    // =========================
+
+    async function sendMessage() {
+
+      if (isStreaming) return;
+
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      autoResize(input);
+
+      appendMessage('user', text);
+
+      const assistantRow = appendMessage('assistant', '');
+      const assistantBubble = assistantRow.querySelector('.message-bubble');
+
+      isStreaming = true;
+      document.getElementById('sendBtn').disabled = true;
+
+      try {
+
+        const token = localStorage.getItem('token');
+
+        const res = await fetch(`${API}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            message: text,
+            session_id: currentSessionId
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        let buffer = '';
+        let aiText = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            try {
+              const msg = JSON.parse(line);
+
+              if (msg.type === 'meta') {
+                currentSessionId = msg.session_id;
+              }
+
+              if (msg.type === 'token') {
+                aiText += msg.content;
+                assistantBubble.innerHTML = formatContent(aiText);
+              }
+
+            } catch (_) {}
+          }
+        }
+
+      } catch (err) {
+        assistantBubble.innerHTML = '⚠️ ' + err.message;
+      }
+
+      isStreaming = false;
+      document.getElementById('sendBtn').disabled = false;
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+  </script>
+
+</body>
+</html>

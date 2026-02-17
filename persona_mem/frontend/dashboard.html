@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PersonaMem — Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <!-- Top Nav -->
+    <nav class="top-nav">
+      <a href="/app" class="nav-brand">
+        <span class="logo-mini">🧠</span>
+        PersonaMem
+      </a>
+      <div class="nav-links">
+        <a href="/app" class="nav-link">💬 Chat</a>
+        <a href="/dashboard" class="nav-link active">📊 Dashboard</a>
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="nav-user">
+        <span>👤 <span id="navUsername">User</span></span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">Sign Out</button>
+    </nav>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div style="padding:16px;">
+        <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Dashboard</div>
+        <nav style="display:flex;flex-direction:column;gap:4px;">
+          <a href="#overview"   class="nav-link active" onclick="showSection('overview',this)">📈 Overview</a>
+          <a href="#memories"   class="nav-link" onclick="showSection('memories',this)">🗂 Memories</a>
+          <a href="#profile"    class="nav-link" onclick="showSection('profile',this)">👤 Profile</a>
+          <a href="#sessions"   class="nav-link" onclick="showSection('sessions',this)">💬 Sessions</a>
+          <a href="#search"     class="nav-link" onclick="showSection('search',this)">🔍 Memory Search</a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+
+      <!-- Overview Section -->
+      <section id="section-overview">
+        <h1 class="page-title">📈 Overview</h1>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-label">Total Sessions</div><div class="stat-value" id="totalSessions">—</div></div>
+          <div class="stat-card"><div class="stat-icon">📨</div><div class="stat-label">Total Messages</div><div class="stat-value" id="totalMessages">—</div></div>
+          <div class="stat-card accent"><div class="stat-icon">🧠</div><div class="stat-label">Total Memories</div><div class="stat-value" id="totalMemories">—</div></div>
+          <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-label">Avg. Importance</div><div class="stat-value" id="avgImportance">—</div></div>
+          <div class="stat-card"><div class="stat-icon">🕐</div><div class="stat-label">Messages (7 days)</div><div class="stat-value" id="recentMessages">—</div></div>
+          <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Profile Complete</div><div class="stat-value" id="profileComplete">—</div></div>
+        </div>
+
+        <div class="section-grid">
+          <div class="card">
+            <div class="card-title">🧠 Memory Breakdown</div>
+            <div id="memoryBreakdown" style="display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📅 Activity (30 days)</div>
+            <div class="bar-chart" id="activityChart"></div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;text-align:center;">Sessions per day</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⭐ Top Memories by Reinforcement</div>
+          <div id="topMemories"></div>
+        </div>
+      </section>
+
+      <!-- Memories Section -->
+      <section id="section-memories" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <h1 class="page-title" style="margin:0;">🗂 Memory Store</h1>
+          <button class="btn btn-secondary btn-sm" onclick="rebuildIndex()">🔄 Rebuild Index</button>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="filterMemories('all', this)">All</button>
+          <button class="filter-tab" onclick="filterMemories('episodic', this)">Episodic</button>
+          <button class="filter-tab" onclick="filterMemories('semantic', this)">Semantic</button>
+          <button class="filter-tab" onclick="filterMemories('session', this)">Session</button>
+          <button class="filter-tab" onclick="filterMemories('profile', this)">Profile</button>
+        </div>
+        <div id="memoriesList">
+          <div style="text-align:center;color:var(--text-muted);padding:40px;">Loading memories…</div>
+        </div>
+      </section>
+
+      <!-- Profile Section -->
+      <section id="section-profile" style="display:none;">
+        <h1 class="page-title">👤 Personalization Settings</h1>
+        <div class="card" style="max-width:700px;">
+          <div class="profile-grid" id="profileForm">
+            <div class="form-group">
+              <label>Display Name</label>
+              <input class="form-control" type="text" id="pDisplayName" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label>Expertise Level</label>
+              <select class="form-control" id="pExpertise">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="expert">Expert</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Communication Style</label>
+              <select class="form-control" id="pStyle">
+                <option value="conversational">Conversational</option>
+                <option value="formal">Formal</option>
+                <option value="technical">Technical</option>
+                <option value="casual">Casual</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Preferred Language</label>
+              <select class="form-control" id="pLanguage">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="zh">Chinese</option>
+                <option value="ja">Japanese</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Goals -->
+          <div class="form-group" style="margin-top:16px;">
+            <label>Goals</label>
+            <div class="tag-input-row">
+              <input class="form-control" type="text" id="goalInput" placeholder="Add a goal…">
+              <button class="btn btn-secondary btn-sm" onclick="addTag('goals', 'goalInput', 'goalTags')">Add</button>
+            </div>
+            <div class="tags-display" id="goalTags"></div>
+          </div>
+
+          <!-- Interests -->
+          <div class="form-group">
+            <label>Interests</label>
+            <div class="tag-input-row">
+              <input class="form-control" type="text" id="interestInput" placeholder="Add an interest…">
+              <button class="btn btn-secondary btn-sm" onclick="addTag('interests', 'interestInput', 'interestTags')">Add</button>
+            </div>
+            <div class="tags-display" id="interestTags"></div>
+          </div>
+
+          <button class="btn btn-primary" onclick="saveProfile()" style="margin-top:8px;width:auto;padding:12px 32px;">
+            Save Profile
+          </button>
+        </div>
+      </section>
+
+      <!-- Sessions Section -->
+      <section id="section-sessions" style="display:none;">
+        <h1 class="page-title">💬 Session History</h1>
+        <div id="sessionHistory">
+          <div style="text-align:center;color:var(--text-muted);padding:40px;">Loading…</div>
+        </div>
+      </section>
+
+      <!-- Memory Search Section -->
+      <section id="section-search" style="display:none;">
+        <h1 class="page-title">🔍 Memory Search</h1>
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;gap:12px;">
+            <input class="form-control" type="text" id="searchQuery" placeholder="Search your memories…" style="flex:1;">
+            <button class="btn btn-primary" onclick="searchMemories()" style="width:auto;padding:12px 24px;">Search</button>
+          </div>
+        </div>
+        <div id="searchResults"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    if (!localStorage.getItem('token')) window.location.href = '/';
+    document.getElementById('navUsername').textContent = localStorage.getItem('username') || 'User';
+
+    const API = '';
+    let profileData = {};
+    let profileGoals = [];
+    let profileInterests = [];
+    let allMemories = [];
+
+    // ── Section Navigation ────────────────────────────────────────────
+    function showSection(name, el) {
+      document.querySelectorAll('section[id^="section-"]').forEach(s => s.style.display = 'none');
+      document.getElementById('section-' + name).style.display = 'block';
+      document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+      if (el) el.classList.add('active');
+
+      if (name === 'overview')  loadOverview();
+      if (name === 'memories')  loadMemories();
+      if (name === 'profile')   loadProfile();
+      if (name === 'sessions')  loadSessionHistory();
+    }
+
+    // ── Overview ──────────────────────────────────────────────────────
+    async function loadOverview() {
+      try {
+        const data = await apiFetch('/metrics');
+        const o = data.overview;
+        document.getElementById('totalSessions').textContent  = o.total_sessions;
+        document.getElementById('totalMessages').textContent  = o.total_messages;
+        document.getElementById('totalMemories').textContent  = o.total_memories;
+        document.getElementById('avgImportance').textContent  = o.avg_importance_score.toFixed(2);
+        document.getElementById('recentMessages').textContent = o.recent_messages_7d;
+        document.getElementById('profileComplete').textContent = o.profile_completeness_pct + '%';
+
+        // Memory breakdown
+        const breakdown = document.getElementById('memoryBreakdown');
+        const colors = { episodic: '#22c55e', semantic: '#6c63ff', session: '#f59e0b', profile: '#ef4444' };
+        breakdown.innerHTML = Object.entries(data.memory_breakdown).map(([type, count]) => `
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:0.85rem;color:var(--text-secondary);text-transform:capitalize;">${type}</span>
+              <span style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">${count}</span>
+            </div>
+            <div style="height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${Math.min((count/(o.total_memories||1))*100,100)}%;background:${colors[type]||'var(--accent)'};border-radius:3px;"></div>
+            </div>
+          </div>
+        `).join('');
+
+        // Activity chart
+        const chart = document.getElementById('activityChart');
+        const maxCount = Math.max(...data.activity.sessions_per_day_30d.map(d => d.count), 1);
+        chart.innerHTML = data.activity.sessions_per_day_30d.map(d => {
+          const h = Math.max((d.count / maxCount) * 100, 2);
+          return `<div class="bar" style="height:${h}%;" title="${d.date}: ${d.count} sessions"></div>`;
+        }).join('');
+
+        // Top memories
+        const topMems = document.getElementById('topMemories');
+        topMems.innerHTML = data.top_memories.length
+          ? data.top_memories.map(m => renderMemoryItem(m)).join('')
+          : '<div style="color:var(--text-muted);padding:20px;text-align:center;">No memories yet</div>';
+      } catch (e) {
+        console.error('Failed to load metrics', e);
+      }
+    }
+
+    // ── Memories ──────────────────────────────────────────────────────
+    async function loadMemories(type = null) {
+      const list = document.getElementById('memoriesList');
+      list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px;"><span class="spinner"></span></div>';
+      try {
+        const url = type && type !== 'all' ? `/memories?memory_type=${type}` : '/memories';
+        allMemories = await apiFetch(url);
+        renderMemories(allMemories);
+      } catch (e) {
+        list.innerHTML = '<div style="color:var(--danger);padding:20px;">Failed to load memories</div>';
+      }
+    }
+
+    function filterMemories(type, btn) {
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      loadMemories(type === 'all' ? null : type);
+    }
+
+    function renderMemories(mems) {
+      const list = document.getElementById('memoriesList');
+      if (!mems.length) {
+        list.innerHTML = '<div style="color:var(--text-muted);padding:40px;text-align:center;">No memories found</div>';
+        return;
+      }
+      list.innerHTML = mems.map(m => renderMemoryItem(m, true)).join('');
+    }
+
+    function renderMemoryItem(m, showDelete = false) {
+      const score = m.importance_score || 0;
+      return `
+        <div class="memory-item" id="mem-${m.id}">
+          <div class="mem-header">
+            <span class="mem-type-badge ${m.memory_type}">${m.memory_type}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);">importance: ${score.toFixed(2)}</span>
+            ${showDelete ? `<button class="btn btn-danger btn-sm btn-icon" onclick="deleteMemory('${m.id}')" style="margin-left:auto;" title="Delete">🗑</button>` : ''}
+          </div>
+          <div class="mem-content">${escHtml(m.content)}</div>
+          <div class="score-bar"><div class="score-fill" style="width:${score*100}%"></div></div>
+          <div class="mem-meta">
+            <span>🔁 ${m.reinforcement_count} reinforcements</span>
+            <span>🕐 ${timeAgo(m.timestamp)}</span>
+          </div>
+        </div>`;
+    }
+
+    async function deleteMemory(id) {
+      if (!confirm('Delete this memory?')) return;
+      try {
+        await apiFetch(`/memory/${id}`, 'DELETE');
+        document.getElementById('mem-' + id)?.remove();
+        showToast('Memory deleted', 'success');
+      } catch (e) {
+        showToast('Failed to delete', 'error');
+      }
+    }
+
+    async function rebuildIndex() {
+      showToast('Rebuilding FAISS index…');
+      try {
+        await apiFetch('/memory/rebuild-index', 'POST');
+        showToast('Index rebuilt successfully', 'success');
+      } catch (e) {
+        showToast('Failed to rebuild', 'error');
+      }
+    }
+
+    // ── Profile ───────────────────────────────────────────────────────
+    async function loadProfile() {
+      try {
+        profileData = await apiFetch('/profile');
+        document.getElementById('pDisplayName').value = profileData.display_name || '';
+        document.getElementById('pExpertise').value   = profileData.expertise_level || 'intermediate';
+        document.getElementById('pStyle').value       = profileData.communication_style || 'conversational';
+        document.getElementById('pLanguage').value    = profileData.preferred_language || 'en';
+
+        profileGoals     = profileData.goals || [];
+        profileInterests = profileData.interests || [];
+        renderTags('goalTags',     profileGoals,     'goals');
+        renderTags('interestTags', profileInterests, 'interests');
+      } catch (e) {
+        showToast('Failed to load profile', 'error');
+      }
+    }
+
+    function addTag(listName, inputId, tagsId) {
+      const input = document.getElementById(inputId);
+      const val = input.value.trim();
+      if (!val) return;
+      if (listName === 'goals') {
+        if (!profileGoals.includes(val)) profileGoals.push(val);
+        renderTags(tagsId, profileGoals, 'goals');
+      } else {
+        if (!profileInterests.includes(val)) profileInterests.push(val);
+        renderTags(tagsId, profileInterests, 'interests');
+      }
+      input.value = '';
+    }
+
+    function removeTag(listName, val) {
+      if (listName === 'goals') {
+        profileGoals = profileGoals.filter(g => g !== val);
+        renderTags('goalTags', profileGoals, 'goals');
+      } else {
+        profileInterests = profileInterests.filter(i => i !== val);
+        renderTags('interestTags', profileInterests, 'interests');
+      }
+    }
+
+    function renderTags(containerId, items, listName) {
+      document.getElementById(containerId).innerHTML = items.map(item => `
+        <span class="tag">
+          ${escHtml(item)}
+          <span class="rm-tag" onclick="removeTag('${listName}', '${escHtml(item)}')">×</span>
+        </span>
+      `).join('');
+    }
+
+    async function saveProfile() {
+      const updates = {
+        display_name:       document.getElementById('pDisplayName').value,
+        expertise_level:    document.getElementById('pExpertise').value,
+        communication_style:document.getElementById('pStyle').value,
+        preferred_language: document.getElementById('pLanguage').value,
+        goals:              profileGoals,
+        interests:          profileInterests,
+      };
+      try {
+        await apiFetch('/profile', 'PUT', updates);
+        showToast('Profile saved!', 'success');
+      } catch (e) {
+        showToast('Failed to save profile', 'error');
+      }
+    }
+
+    // ── Session History ───────────────────────────────────────────────
+    async function loadSessionHistory() {
+      const container = document.getElementById('sessionHistory');
+      try {
+        const sessions = await apiFetch('/sessions');
+        if (!sessions.length) {
+          container.innerHTML = '<div style="color:var(--text-muted);padding:40px;text-align:center;">No sessions yet</div>';
+          return;
+        }
+        container.innerHTML = `
+          <div style="display:grid;gap:12px;">
+            ${sessions.map(s => `
+              <div class="card" style="cursor:pointer;" onclick="window.location.href='/app'">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                  <div>
+                    <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">${escHtml(s.title)}</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);">
+                      ${s.message_count} messages · Created ${timeAgo(s.created_at)} · Updated ${timeAgo(s.updated_at)}
+                    </div>
+                  </div>
+                  <span style="font-size:0.75rem;color:var(--text-muted);font-family:monospace;">${s.id.slice(0,8)}…</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>`;
+      } catch (e) {
+        container.innerHTML = '<div style="color:var(--danger);padding:20px;">Failed to load sessions</div>';
+      }
+    }
+
+    // ── Memory Search ─────────────────────────────────────────────────
+    async function searchMemories() {
+      const q = document.getElementById('searchQuery').value.trim();
+      if (!q) return;
+      const results = document.getElementById('searchResults');
+      results.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner"></span></div>';
+      try {
+        const data = await apiFetch(`/memory/search?q=${encodeURIComponent(q)}&top_k=10`);
+        if (!data.length) {
+          results.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">No relevant memories found</div>';
+          return;
+        }
+        results.innerHTML = data.map(m => `
+          <div class="memory-item">
+            <div class="mem-header">
+              <span class="mem-type-badge ${m.memory_type}">${m.memory_type}</span>
+              <span style="font-size:0.75rem;color:var(--text-muted);">score: ${m.composite_score.toFixed(3)}</span>
+              <span style="font-size:0.75rem;color:var(--text-muted);">similarity: ${m.semantic_similarity.toFixed(3)}</span>
+            </div>
+            <div class="mem-content">${escHtml(m.content)}</div>
+            <div class="mem-meta">
+              <span>🎯 Composite: ${m.composite_score.toFixed(3)}</span>
+              <span>🔁 ${m.reinforcement_count}×</span>
+              <span>🕐 ${timeAgo(m.timestamp)}</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        results.innerHTML = '<div style="color:var(--danger);padding:20px;">Search failed</div>';
+      }
+    }
+
+    document.getElementById('searchQuery').addEventListener('keydown', e => {
+      if (e.key === 'Enter') searchMemories();
+    });
+
+    // Init
+    loadOverview();
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
