@@ -33,5 +33,5 @@ Frontend: HTML
 CSS
 JavaScript
 
-Purpose of the Project
+Purpose of the Project:
 The goal was to build an AI system that maintains contextual continuity rather than responding independently to each query. This project demonstrates how retrieval-based memory systems can enhance conversational AI by integrating semantic search with structured storage.
