@@ -4,7 +4,7 @@ Persona Memory is a full-stack AI chat application that I built to implement lon
 
 What I Implemented
 1. Built FastAPI backend with modular architecture
-2. Designed service layer (chat_service, memory_service, retrieval, prompt_builder)
+2. Designed service layer (chat_service, memory service, retrieval, prompt builder)
 3. Integrated FAISS for semantic memory search
 4. Implemented SQLAlchemy-based database storage
 5. Developed JWT authentication system
